@@ -10,6 +10,15 @@ jobs:
     steps:
       - name: Checkout source
         uses: actions/checkout@v3
+      - name: Create .env file
+        run: |
+              echo "DATABASE_URL=${{ secrets.DATABASE_URL }}" >> .env
+              echo "CLIENT_ID_GITHUB=${{ secrets.CLIENT_ID_GITHUB }}" >> .env
+              echo "CLIENT_SECRET_GITHUB=${{ secrets.CLIENT_SECRET_GITHUB }}" >> .env
+              echo "AWS_REGION=${{ secrets.AWS_REGION }}" >> .env
+              echo "AWS_BUCKET=${{ secrets.AWS_BUCKET }}" >> .env
+              echo "AWS_ACCESS_KEY=${{ secrets.AWS_ACCESS_KEY }}" >> .env
+              echo "AWS_SECRET_KEY=${{ secrets.AWS_SECRET_KEY }}" >> .env
       - name: Login to docker hub
         run: docker login -u ${{ secrets.DOCKER_USERNAME }} -p ${{ secrets.DOCKER_PASSWORD }} 
       - name: Build docker image

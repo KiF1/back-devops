@@ -1,11 +1,16 @@
 import { randomUUID } from 'node:crypto'
-import { extname, resolve } from 'node:path'
+import { extname } from 'node:path'
 import { FastifyInstance } from 'fastify'
-import { createWriteStream } from 'node:fs'
-import { pipeline } from 'node:stream'
-import { promisify } from 'node:util'
+import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3'
 
-const pump = promisify(pipeline)
+const s3Client = new S3Client({ 
+  region: process.env.AWS_REGION!, 
+  credentials: 
+    { 
+      accessKeyId: process.env.AWS_ACCESS_KEY!, 
+      secretAccessKey: process.env.AWS_SECRET_KEY!
+    } 
+  })
 
 export async function uploadRoutes(app: FastifyInstance) {
   app.post('/upload', async (request, reply) => {
@@ -28,17 +33,33 @@ export async function uploadRoutes(app: FastifyInstance) {
 
     const fileId = randomUUID()
     const extension = extname(upload.filename)
-
     const fileName = fileId.concat(extension)
 
-    const writeStream = createWriteStream(
-      resolve(__dirname, '..', '..', 'uploads', fileName),
-    )
+    const bucketName = process.env.AWS_BUCKET
 
-    await pump(upload.file, writeStream)
+    const fileBuffer: Buffer = await new Promise((resolve, reject) => {
+      const chunks: Buffer[] = []
+      upload.file.on('data', (chunk) => chunks.push(chunk))
+      upload.file.on('end', () => resolve(Buffer.concat(chunks)))
+      upload.file.on('error', reject)
+    })
+
+    const uploadParams = {
+      Bucket: bucketName,
+      Key: fileName,
+      Body: fileBuffer,
+      ContentType: upload.mimetype,
+    }
+
+    try {
+      await s3Client.send(new PutObjectCommand(uploadParams))
+    } catch (err) {
+      console.error(err)
+      return reply.status(500).send()
+    }
 
     const fullUrl = request.protocol.concat('://').concat(request.hostname)
-    const fileUrl = new URL(`/uploads/${fileName}`, fullUrl).toString()
+    const fileUrl = new URL(`https://${bucketName}.s3.amazonaws.com/${fileName}`).toString()
 
     return { fileUrl }
   })
