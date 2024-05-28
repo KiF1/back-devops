@@ -2,7 +2,7 @@
 FROM node:lts-slim
 
 # Atualizar o sistema e instalar o OpenSSL
-RUN apt-get update -y && apt-get install -y openss
+RUN apt-get update -y && apt-get install -y openssl
 
 # Definindo o diretório de trabalho
 WORKDIR /node
