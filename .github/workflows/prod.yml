@@ -2,7 +2,7 @@ name: Node CI/CD Pipeline
 
 on:
   push:
-    branches: [main]
+    branches: [master, staging]
 
 jobs:
   build:
@@ -28,7 +28,7 @@ jobs:
         
   deploy:
     needs: build
-    runs-on: [nodejs-ec2]
+    runs-on: [nodejs]
     steps:
       - name: Pull image from docker hub
         run: docker pull abnerst/node:latest
